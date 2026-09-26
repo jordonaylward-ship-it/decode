@@ -60,22 +60,20 @@ textarea::placeholder{color:var(--mut)}
 <div class="app">
   <div class="lock" id="lockCard">
     <h2>Cipher</h2>
-    <p>Your two words turn anything into junk, and back. They live only in this browser's memory until you lock, nothing is saved anywhere and nothing leaves this page.</p>
-    <label>Number word · 10 different letters</label>
-    <input type="text" id="wNum" placeholder="like BLACKHORSE" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <label>Number word</label>
+    <input type="text" id="wNum" placeholder="" autocomplete="off" autocapitalize="characters" spellcheck="false">
     <div class="check" id="numCheck"></div>
-    <label>Key word · any word, short is easier</label>
-    <input type="text" id="wKey" placeholder="like BED" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <label>Key word</label>
+    <input type="text" id="wKey" placeholder="" autocomplete="off" autocapitalize="characters" spellcheck="false">
     <div class="row">
       <label class="tog"><input type="checkbox" id="remember"> Remember on this device</label>
       <button class="btn" id="unlock" disabled>Unlock</button>
     </div>
-    <div class="note">Remember keeps the words in this browser so you skip this screen next time. Leave it off on a shared computer.</div>
   </div>
 
   <div id="main">
     <div class="hdr">
-      <div><h1>Cipher</h1><p>Type, paste or drop a screenshot. It codes as you go.</p></div>
+      <div><h1>Cipher</h1></div>
       <div class="words"><span id="wordsTxt"></span><button class="pill ghost" onclick="lock()">Lock</button></div>
     </div>
     <div class="seg"><button id="segEnc" class="on" onclick="setMode('enc')">Make code</button><button id="segDec" onclick="setMode('dec')">Read code</button></div>
@@ -83,23 +81,21 @@ textarea::placeholder{color:var(--mut)}
     <div class="grid">
       <div class="card">
         <div class="ch"><h2 id="inTitle">Plain</h2><span class="st" id="inStatus"></span></div>
-        <textarea id="in" placeholder="Type or paste here. A screenshot pastes too."></textarea>
-        <div class="drop" id="drop">Drop a screenshot, photo, text file or PDF here</div>
+        <textarea id="in" placeholder="Paste here"></textarea>
+        <div class="drop" id="drop">Drop a file</div>
         <input type="file" id="file" accept="image/*,.txt,.pdf,text/plain,application/pdf" multiple hidden>
         <div class="foot"><span id="inCount"></span><span><button class="pill ghost" onclick="clearIn()">Clear</button></span></div>
       </div>
       <div class="card">
         <div class="ch"><h2 id="outTitle">Coded</h2><span class="st" id="outStatus"></span></div>
-        <textarea id="out" readonly placeholder="Comes out here as you type."></textarea>
+        <textarea id="out" readonly placeholder=""></textarea>
         <div class="foot"><span id="outCount"></span><span><button class="pill ghost" onclick="swap()">Swap sides</button> <button class="pill" onclick="copyOut()">Copy</button></span></div>
       </div>
     </div>
-    <div class="note" id="styleNote"></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 <script>
-/* ═══ words · in memory only, or in this browser if Remember is on ═══ */
 var KEY='cipher_words_v1',W=null,mode='enc',style='words',idleTimer=null;
 function $(id){return document.getElementById(id)}
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
@@ -109,11 +105,6 @@ function mask(w){return w?w[0]+'\u2022'.repeat(Math.max(1,w.length-2))+w[w.lengt
 var SYMS='$,.%-/:@()#&+=?!';
 function symLetters(num){var out='';for(var i=65;i<=90;i++){var c=String.fromCharCode(i);if(num.indexOf(c)<0)out+=c}return out}
 
-/* ═══ word code ═══
-   numbers · each digit becomes the matching letter of the number word, in capitals
-   symbols next to a number · $ , . % and friends become the capitals the number word did not use
-   letters · slide each one forward by the key word, A is 0, B is 1, out as lowercase
-   everything else stays as it is */
 function encode(text){
   var num=W.num,key=W.key,sl=symLetters(num),out='',ki=0,chars=Array.from(String(text||''));
   for(var i=0;i<chars.length;i++){
@@ -141,9 +132,6 @@ function caps(t){
   return t.replace(/\bi\b/g,'I').replace(/\bi'([md]|ll|ve)\b/g,"I'$1");
 }
 
-/* ═══ strong lock · real encryption, AES 256 with a key made from your two words ═══
-   The output is junk that nobody can read without both words, not even with a computer and a long weekend.
-   It starts with LOCK. so the reader knows which way to open it. */
 var enc8=new TextEncoder(),dec8=new TextDecoder();
 function b64(bytes){var s='';bytes.forEach(function(b){s+=String.fromCharCode(b)});return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function unb64(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var bin=atob(s),out=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
@@ -186,15 +174,12 @@ async function run(){
 function setMode(m){
   mode=m;$('segEnc').className=m==='enc'?'on':'';$('segDec').className=m==='dec'?'on':'';
   $('inTitle').textContent=m==='enc'?'Plain':'Coded';$('outTitle').textContent=m==='enc'?'Coded':'Plain';
-  $('in').placeholder=m==='enc'?'Type or paste here. A screenshot pastes too.':'Paste the coded message here. Word code or a LOCK. message, it works out which.';
+  $('in').placeholder='Paste here';
   $('styleSeg').style.display=m==='enc'?'':'none';
   run();
 }
 function setStyle(s){
   style=s;$('segWords').className=s==='words'?'on':'';$('segStrong').className=s==='strong'?'on':'';
-  $('styleNote').textContent=s==='words'
-    ?'Word code. Letters come out as lowercase letters, numbers and symbols like $ , . % come out as capitals, spaces and line breaks stay. Reads like junk, but a patient person with a computer could work at it.'
-    :'Strong lock. Real encryption, AES 256, with a key built from your two words. Nobody reads it without both words, full stop. It comes out as a block of random characters starting with LOCK.';
   run();
 }
 function swap(){var o=$('out').value;setMode(mode==='enc'?'dec':'enc');$('in').value=o;run()}
@@ -205,7 +190,7 @@ function copyOut(){var v=$('out').value;if(!v)return;var done=function(){toast('
 function checkWords(){
   var num=normWord($('wNum').value),key=normWord($('wKey').value),ok=numOk(num),c=$('numCheck');
   c.className='check '+(num?(ok?'ok':'bad'):'');
-  c.textContent=!num?'':ok?'Good, 10 different letters.':(num.length!==10?num.length+' letters, needs 10.':'Two letters repeat, they all have to be different.');
+  c.textContent=!num||ok?'':(num.length!==10?num.length+' letters, needs 10':'Two letters repeat');
   $('unlock').disabled=!(ok&&key.length>0);
 }
 function unlock(){
@@ -224,14 +209,12 @@ function lock(){
   $('remember').checked=false;
   $('main').style.display='none';$('lockCard').style.display='';checkWords();$('wNum').focus();
 }
-/* 20 minutes of nothing and it locks itself, and it locks when you leave the tab for a while */
 function touch(){clearTimeout(idleTimer);idleTimer=setTimeout(function(){if(W){lock();toast('Locked, it was quiet for a while')}},20*60*1000)}
 document.addEventListener('visibilitychange',function(){if(document.hidden&&W){clearTimeout(idleTimer);idleTimer=setTimeout(function(){if(W&&document.hidden)lock()},10*60*1000)}else touch()});
 $('wNum').addEventListener('input',checkWords);$('wKey').addEventListener('input',checkWords);
 $('unlock').addEventListener('click',unlock);
 [$('wNum'),$('wKey')].forEach(function(el){el.addEventListener('keydown',function(e){if(e.key==='Enter'&&!$('unlock').disabled)unlock()})});
 
-/* ═══ pictures and files · read here, nothing sent anywhere ═══ */
 function loadScript(src){return new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 async function ensureOcr(){if(window.Tesseract)return;await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js')}
 async function ensurePdf(){if(window.pdfjsLib)return;await loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js');pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'}
@@ -269,7 +252,6 @@ $('file').addEventListener('change',function(e){Array.prototype.slice.call(e.tar
 (function(){var d=$('drop');d.addEventListener('click',function(){$('file').click()});d.addEventListener('dragover',function(e){e.preventDefault();d.classList.add('on')});d.addEventListener('dragleave',function(){d.classList.remove('on')});d.addEventListener('drop',function(e){e.preventDefault();d.classList.remove('on');Array.prototype.slice.call(e.dataTransfer.files||[]).forEach(function(f){takeBlob(f,f.name)})});
   document.body.addEventListener('dragover',function(e){e.preventDefault()});document.body.addEventListener('drop',function(e){e.preventDefault();Array.prototype.slice.call(e.dataTransfer.files||[]).forEach(function(f){takeBlob(f,f.name)})})})();
 
-/* remembered words skip the lock screen */
 (function(){
   try{var o=JSON.parse(localStorage.getItem(KEY)||'null');if(o&&numOk(normWord(o.num))&&normWord(o.key)){$('wNum').value=o.num;$('wKey').value=o.key;$('remember').checked=true;unlock();return}}catch(e){}
   checkWords();$('wNum').focus();
